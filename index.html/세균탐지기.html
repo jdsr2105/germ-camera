@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>마법의 세균 카메라</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg1:#120a29;
+    --bg2:#1f1247;
+    --bg3:#341b5e;
+    --violet:#8b6bff;
+    --magenta:#ff59b0;
+    --teal:#38e6cf;
+    --gold:#ffd76b;
+    --panel:rgba(255,255,255,0.06);
+    --panel-border:rgba(255,255,255,0.16);
+    --ink:#f5f1ff;
+    --ink-soft:#c6b9ec;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 18% 15%, rgba(139,107,255,0.35) 0, transparent 42%),
+      radial-gradient(circle at 85% 12%, rgba(56,230,207,0.22) 0, transparent 40%),
+      radial-gradient(circle at 78% 85%, rgba(255,89,176,0.28) 0, transparent 45%),
+      radial-gradient(circle at 10% 88%, rgba(139,107,255,0.25) 0, transparent 42%),
+      linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
+    font-family:'Gowun Dodum', sans-serif;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:26px 16px 50px;
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* twinkling starfield */
+  .stars, .stars::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    background-image:
+      radial-gradient(1.5px 1.5px at 10% 20%, #fff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 25% 65%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 40% 30%, #fff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 55% 80%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 68% 15%, #fff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 80% 55%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 90% 25%, #fff 0, transparent 60%),
+      radial-gradient(1.5px 1.5px at 95% 75%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 15% 90%, #fff 0, transparent 60%),
+      radial-gradient(1px 1px at 33% 10%, #fff 0, transparent 60%);
+    opacity:.55;
+    z-index:0;
+    animation:twinkle 4.5s ease-in-out infinite alternate;
+  }
+  .stars::after{
+    background-position:30px 40px;
+    animation-duration:6s;
+    animation-direction:alternate-reverse;
+    opacity:.35;
+  }
+  @keyframes twinkle{
+    0%{opacity:.25;}
+    50%{opacity:.65;}
+    100%{opacity:.3;}
+  }
+
+  .app{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:1180px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .app-header{text-align:center; margin-bottom:22px;}
+  .title{
+    font-family:'Jua', sans-serif;
+    font-size:clamp(24px,4.2vw,36px);
+    color:var(--gold);
+    text-shadow:0 0 18px rgba(255,215,107,0.55), 0 0 2px rgba(255,255,255,0.6);
+    margin:4px 0 6px;
+    letter-spacing:-0.5px;
+  }
+  .subtitle{
+    font-size:clamp(14px,2.4vw,17px);
+    color:var(--ink-soft);
+    margin:0;
+  }
+
+  .main-layout{
+    display:flex;
+    flex-direction:column-reverse;
+    align-items:center;
+    gap:26px;
+    width:100%;
+  }
+
+  .panel-left{
+    width:100%;
+    max-width:460px;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:26px;
+    padding:22px;
+    backdrop-filter:blur(10px);
+    box-shadow:0 20px 50px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .stage-label{
+    font-family:'Jua', sans-serif;
+    font-size:clamp(16px,2.6vw,20px);
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,215,107,0.35);
+    padding:10px 20px;
+    border-radius:999px;
+    margin-bottom:18px;
+    text-align:center;
+    color:var(--gold);
+    text-shadow:0 0 10px rgba(255,215,107,0.35);
+  }
+
+  /* --- Magic portal frame --- */
+  .frame-wrap{
+    position:relative;
+    width:min(88vw, 480px);
+    aspect-ratio:4/3;
+  }
+  .frame-glow{
+    position:absolute;
+    inset:-16px;
+    border-radius:44% 56% 58% 42% / 46% 42% 58% 54%;
+    background:conic-gradient(from 0deg, var(--violet), var(--teal), var(--magenta), var(--gold), var(--violet));
+    filter:blur(22px);
+    opacity:.65;
+    animation:spin-glow 7s linear infinite;
+    z-index:0;
+  }
+  @keyframes spin-glow{ to{ transform:rotate(360deg);} }
+
+  .bubble-frame{
+    position:relative;
+    z-index:1;
+    width:100%;
+    height:100%;
+    border-radius:44% 56% 58% 42% / 46% 42% 58% 54%;
+    overflow:hidden;
+    background:linear-gradient(160deg,#1c1140,#2a1a52);
+    border:5px solid rgba(255,255,255,0.35);
+    box-shadow:
+      0 20px 45px rgba(0,0,0,0.45),
+      inset 0 0 30px rgba(139,107,255,0.35),
+      inset 0 0 0 2px rgba(255,255,255,0.12);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .bubble-frame::after{
+    content:"";
+    position:absolute;
+    top:6%; left:10%;
+    width:24%; height:12%;
+    background:rgba(255,255,255,0.35);
+    border-radius:50%;
+    filter:blur(3px);
+    pointer-events:none;
+    transform:rotate(-20deg);
+  }
+  video, canvas, img.captured{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  video.mirror{transform:scaleX(-1);}
+
+  .placeholder{
+    text-align:center;
+    padding:0 20px;
+    color:var(--ink-soft);
+  }
+  .placeholder-emoji{font-size:46px; display:block; margin-bottom:8px; filter:drop-shadow(0 0 10px rgba(139,107,255,0.6));}
+
+  /* germs layer */
+  .germ-layer{
+    position:absolute; inset:0;
+    pointer-events:none;
+  }
+  .germ{
+    position:absolute;
+    width:44px; height:44px;
+    opacity:0;
+    transform:scale(0) rotate(0deg);
+    transform-origin:center;
+    filter:drop-shadow(0 0 8px currentColor);
+  }
+  .germ.show{
+    animation:pop-in .55s cubic-bezier(0.34,1.56,0.64,1) forwards,
+              wiggle 2.4s ease-in-out infinite .55s;
+  }
+  @keyframes pop-in{
+    0%{opacity:0; transform:scale(0) rotate(-10deg);}
+    60%{opacity:1; transform:scale(1.15) rotate(8deg);}
+    100%{opacity:1; transform:scale(1) rotate(0deg);}
+  }
+  @keyframes wiggle{
+    0%,100%{transform:translateY(0) rotate(-4deg);}
+    50%{transform:translateY(-4px) rotate(4deg);}
+  }
+
+  /* --- Controls --- */
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:12px;
+    justify-content:center;
+    width:100%;
+  }
+  button, .file-btn{
+    font-family:'Jua', sans-serif;
+    font-size:16px;
+    border:none;
+    border-radius:999px;
+    padding:14px 22px;
+    cursor:pointer;
+    color:#1b1030;
+    box-shadow:0 4px 0 rgba(0,0,0,0.25), 0 10px 22px rgba(139,107,255,0.35);
+    transition:transform .12s ease, box-shadow .12s ease;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  button:active, .file-btn:active{
+    transform:translateY(3px);
+    box-shadow:0 1px 0 rgba(0,0,0,0.25), 0 4px 10px rgba(139,107,255,0.35);
+  }
+  button:disabled{opacity:.4; cursor:not-allowed; transform:none;}
+  .btn-camera{background:linear-gradient(160deg, var(--teal), #22b8a6); color:#0c2f2a;}
+  .btn-shoot{background:linear-gradient(160deg, var(--gold), #f0b93a); color:#3a2900;}
+  .btn-reveal{background:linear-gradient(160deg, var(--magenta), #e0397f); color:#3a0a20;}
+  .btn-reset{background:linear-gradient(160deg, var(--violet), #6b4ce0); color:#1c1140;}
+  .file-btn{background:linear-gradient(160deg,#cdbfff,#a894f5); color:#241357;}
+
+  input[type=file]{display:none;}
+
+  .hint{
+    margin-top:18px;
+    font-size:13px;
+    color:var(--ink-soft);
+    text-align:center;
+    line-height:1.55;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:24px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:rgba(20,12,45,0.95);
+    border:1px solid rgba(255,255,255,0.15);
+    color:#fff;
+    padding:12px 20px;
+    border-radius:12px;
+    font-size:14px;
+    opacity:0;
+    transition:opacity .25s ease, transform .25s ease;
+    pointer-events:none;
+    max-width:80vw;
+    text-align:center;
+    z-index:5;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* --- Tablet / laptop landscape layout --- */
+  @media (min-width: 860px){
+    body{padding:36px 32px 60px;}
+    .app-header{margin-bottom:30px;}
+    .main-layout{
+      flex-direction:row;
+      align-items:center;
+      justify-content:center;
+      gap:44px;
+    }
+    .panel-left{
+      max-width:340px;
+      align-items:flex-start;
+      text-align:left;
+      padding:28px;
+    }
+    .stage-label{align-self:stretch; text-align:center;}
+    .controls{justify-content:flex-start;}
+    .hint{text-align:left;}
+    .frame-wrap{
+      width:min(46vw, 640px);
+      aspect-ratio:16/10;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div class="stars"></div>
+
+  <div class="app">
+    <div class="app-header">
+      <div class="title">✨ 마법의 세균 카메라 ✨</div>
+      <div class="subtitle">눈에 보이지 않는 세균이 어디에 숨어있는지, 마법 렌즈로 찾아볼까요?</div>
+    </div>
+
+    <div class="main-layout">
+      <div class="panel-left">
+        <div class="stage-label" id="stageLabel">1단계 · 우리 교실 사진을 찍어봐요 📸</div>
+
+        <div class="controls" id="controlsRow1">
+          <button class="btn-camera" id="startCamBtn">📷 카메라 켜기</button>
+          <label class="file-btn" for="fileInput">🖼️ 사진 찍기/올리기</label>
+          <input type="file" id="fileInput" accept="image/*" capture="environment">
+        </div>
+
+        <div class="controls" id="controlsRow2" style="display:none;">
+          <button class="btn-shoot" id="shootBtn">📸 지금 촬영하기</button>
+        </div>
+
+        <div class="controls" id="controlsRow3" style="display:none;">
+          <button class="btn-reveal" id="revealBtn">✨ 짜잔! 세균 보이기</button>
+          <button class="btn-reset" id="resetBtn">🔄 다시 찍기</button>
+        </div>
+
+        <div class="hint">
+          선생님용 도구예요. 교실 사진을 찍은 뒤 '세균 보이기' 버튼을 누르면, 손과 물건 위에 보이지 않던 세균이 마법처럼 하나씩 나타나요. 아이들과 "여기도 있었네!" 하며 함께 찾아보세요.
+        </div>
+      </div>
+
+      <div class="frame-wrap">
+        <div class="frame-glow"></div>
+        <div class="bubble-frame" id="bubbleFrame">
+          <div class="placeholder" id="placeholder">
+            <span class="placeholder-emoji">🔮</span>
+            아직 사진이 없어요<br>왼쪽 버튼을 눌러보세요!
+          </div>
+          <video id="video" playsinline webkit-playsinline autoplay muted style="display:none;"></video>
+          <canvas id="canvas" style="display:none;"></canvas>
+          <img id="capturedImg" class="captured" style="display:none;" alt="촬영된 교실 사진">
+          <div class="germ-layer" id="germLayer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const capturedImg = document.getElementById('capturedImg');
+  const placeholder = document.getElementById('placeholder');
+  const germLayer = document.getElementById('germLayer');
+  const stageLabel = document.getElementById('stageLabel');
+  const toast = document.getElementById('toast');
+
+  const startCamBtn = document.getElementById('startCamBtn');
+  const shootBtn = document.getElementById('shootBtn');
+  const revealBtn = document.getElementById('revealBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const fileInput = document.getElementById('fileInput');
+
+  const row1 = document.getElementById('controlsRow1');
+  const row2 = document.getElementById('controlsRow2');
+  const row3 = document.getElementById('controlsRow3');
+
+  let stream = null;
+  let isFrontCamera = false;
+
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 2800);
+  }
+
+  function resetView(){
+    row1.style.display = 'flex';
+    row2.style.display = 'none';
+    row3.style.display = 'none';
+    video.style.display = 'none';
+    canvas.style.display = 'none';
+    capturedImg.style.display = 'none';
+    capturedImg.src = ''; // 메모리 비우기
+    placeholder.style.display = 'block';
+    germLayer.innerHTML = '';
+    stageLabel.textContent = '1단계 · 우리 교실 사진을 찍어봐요 📸';
+    if(stream){
+      stream.getTracks().forEach(t=>t.stop());
+      stream = null;
+    }
+  }
+
+  startCamBtn.addEventListener('click', async ()=>{
+    try{
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Not supported');
+      }
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } }
+      });
+      video.muted = true;
+      video.srcObject = stream;
+      placeholder.style.display = 'none';
+      video.style.display = 'block';
+      await video.play().catch(()=>{});
+
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings ? track.getSettings() : {};
+      isFrontCamera = settings.facingMode === 'user';
+      video.classList.toggle('mirror', isFrontCamera);
+
+      row1.style.display = 'none';
+      row2.style.display = 'flex';
+      stageLabel.textContent = '2단계 · 준비되면 촬영 버튼을 눌러요';
+    }catch(err){
+      showToast('이 브라우저에서는 실시간 카메라를 켤 수 없어요! 대신 옆에 있는 "사진 찍기/올리기" 버튼을 눌러 바로 촬영해주세요 🙏');
+    }
+  });
+
+  function waitForVideoReady(timeoutMs){
+    return new Promise((resolve, reject)=>{
+      const start = Date.now();
+      function check(){
+        if(video.readyState >= 2 && video.videoWidth && video.videoHeight){
+          resolve();
+        }else if(Date.now() - start > timeoutMs){
+          reject(new Error('timeout'));
+        }else{
+          requestAnimationFrame(check);
+        }
+      }
+      check();
+    });
+  }
+
+  shootBtn.addEventListener('click', async ()=>{
+    shootBtn.disabled = true;
+    shootBtn.textContent = '📸 준비 중...';
+    try{
+      await waitForVideoReady(5000);
+      const w = video.videoWidth, h = video.videoHeight;
+      const size = Math.min(w,h);
+      canvas.width = 800; canvas.height = 600;
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      if(isFrontCamera){
+        ctx.translate(800,0);
+        ctx.scale(-1,1);
+      }
+      const targetRatio = 800/600;
+      let sw = w, sh = h;
+      if(w/h > targetRatio){ sw = h*targetRatio; } else { sh = w/targetRatio; }
+      const sx = (w-sw)/2, sy = (h-sh)/2;
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, 800, 600);
+      ctx.restore();
+      
+      finishCapture(canvas.toDataURL('image/jpeg', 0.8));
+    }catch(err){
+      showToast('카메라 화면이 아직 준비되지 않았어요. 잠시 후 다시 눌러주시거나 "사진 찍기/올리기"를 이용해 주세요 🙏');
+    }finally{
+      shootBtn.disabled = false;
+      shootBtn.textContent = '📸 지금 촬영하기';
+    }
+  });
+
+  // 💡 핵심 수정 부분: 캔버스(Canvas) 렌더링 과정을 완전히 건너뛰고 사진을 다이렉트로 띄웁니다!
+  fileInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    
+    try {
+      const objectUrl = URL.createObjectURL(file);
+      
+      // 이전에 생성된 이미지 URL이 있다면 메모리에서 지워줌 (아이패드 버벅임 방지)
+      if (window.lastUrl) {
+          URL.revokeObjectURL(window.lastUrl);
+      }
+      window.lastUrl = objectUrl;
+
+      // 사진을 화면에 바로 적용
+      finishCapture(objectUrl);
+    } catch(err) {
+      showToast('앗, 사진을 불러오는데 실패했어요 ㅠㅠ 다시 시도해주세요!');
+    }
+  });
+
+  function finishCapture(dataUrl){
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+    video.style.display = 'none';
+    canvas.style.display = 'none';
+    capturedImg.src = dataUrl;
+    capturedImg.style.display = 'block';
+    
+    // UI 변경
+    placeholder.style.display = 'none';
+    row1.style.display = 'none';
+    row2.style.display = 'none';
+    row3.style.display = 'flex';
+    stageLabel.textContent = '3단계 · 세균이 어디 숨어있는지 볼까요?';
+    germLayer.innerHTML = '';
+  }
+
+  const germColors = ['#38e6cf','#ff59b0','#8b6bff','#ffd76b','#5ac8fa'];
+
+  function germSVG(color){
+    return `
+      <svg viewBox="0 0 60 60" width="100%" height="100%" style="color:${color};">
+        <g>
+          <circle cx="30" cy="30" r="17" fill="${color}" stroke="#1c1140" stroke-width="2"/>
+          <line x1="14" y1="30" x2="4" y2="24" stroke="#1c1140" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="14" y1="34" x2="5" y2="42" stroke="#1c1140" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="46" y1="30" x2="56" y2="24" stroke="#1c1140" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="46" y1="34" x2="55" y2="42" stroke="#1c1140" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="30" y1="13" x2="30" y2="3" stroke="#1c1140" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="30" cy="3" r="2.5" fill="#1c1140"/>
+          <circle cx="24" cy="28" r="3" fill="#1c1140"/>
+          <circle cx="36" cy="28" r="3" fill="#1c1140"/>
+          <path d="M23 36 Q30 41 37 36" stroke="#1c1140" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>`;
+  }
+
+  revealBtn.addEventListener('click', ()=>{
+    if(germLayer.childElementCount > 0){
+      showToast('세균이 이미 나타나 있어요! "다시 찍기"로 새로 시작해 보세요.');
+      return;
+    }
+    const positions = [
+      {top:'10%', left:'10%'}, {top:'15%', left:'70%'}, {top:'55%', left:'6%'},
+      {top:'60%', left:'75%'}, {top:'35%', left:'42%'}, {top:'70%', left:'42%'},
+      {top:'8%', left:'42%'}
+    ];
+    positions.forEach((pos, i)=>{
+      setTimeout(()=>{
+        const div = document.createElement('div');
+        div.className = 'germ';
+        div.style.top = pos.top;
+        div.style.left = pos.left;
+        div.style.width = (34 + Math.random()*20) + 'px';
+        div.style.height = div.style.width;
+        div.innerHTML = germSVG(germColors[i % germColors.length]);
+        germLayer.appendChild(div);
+        requestAnimationFrame(()=> div.classList.add('show'));
+      }, i * 260);
+    });
+    setTimeout(()=>{
+      stageLabel.textContent = '짜잔! 이만큼 숨어있었어요 🦠 이제 손을 씻으러 나가볼까요?';
+      showToast('세균은 눈에 보이지 않아도 우리 주변 어디에나 있어요!');
+    }, positions.length * 260 + 200);
+  });
+
+  resetBtn.addEventListener('click', resetView);
+</script>
+</body>
+</html>
